@@ -51,6 +51,7 @@ If any of the values is configured at the instance level it will override defaul
 Available vCores values are: 4, 8, 16, 24, 32, 40, 64, 80. However, these values depend on hardware generation and service tier managed instance is running on. For more details visit [Azure SQL Managed Instance resource limits](https://docs.microsoft.com/azure/azure-sql/managed-instance/resource-limits).
 
 <b>AutoScalingLowerStorage / AutoScalingUpperStorage</b>
+
 Value is provided in GBs with increment of 32 (for example: 1024). For resource limits visit [Azure SQL Managed Instance resource limits](https://docs.microsoft.com/azure/azure-sql/managed-instance/resource-limits).
 
 ## Credits
