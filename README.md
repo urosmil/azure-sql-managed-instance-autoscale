@@ -1,0 +1,1 @@
+# azure-sql-managed-instance-autoscale
