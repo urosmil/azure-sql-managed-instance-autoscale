@@ -54,5 +54,8 @@ Available vCores values are: 4, 8, 16, 24, 32, 40, 64, 80. However, these values
 
 Value is provided in GBs with increment of 32 (for example: 1024). For resource limits visit [Azure SQL Managed Instance resource limits](https://docs.microsoft.com/azure/azure-sql/managed-instance/resource-limits).
 
+Example of the tag configuration is displayed on the screenshot
+![Example of tags for automated scaling](screenshots/tags-example.jpg)
+
 ## Credits
 [Automys scheduled Virtual Machine Shutdown/Startup](https://automys.com/library/asset/scheduled-virtual-machine-shutdown-startup-microsoft-azure)
