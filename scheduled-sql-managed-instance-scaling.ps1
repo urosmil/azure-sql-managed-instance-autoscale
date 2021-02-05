@@ -1,3 +1,38 @@
+<#PSScriptInfo
+
+    .SYNOPSIS 
+        This runbook is performing Azure SQL Managed Instance scaling based on the configuration set through tags on resource group or Azure SQL Managed Instance.
+ 
+    .DESCRIPTION 
+        The runbook implements a simple solution for automating SQL Managed Instance scaling which is frequent customer scenario.
+        In order to reduce the costs, customers perform scaling to the lower compute (which is the main price driver in Azure SQL Managed Instance) during quiet hours and then increasing compute power during busy hours.
+        
+        Script Version: 1.0
+        Author: Uros Milanovic (urmilano)
+        WWW: 
+        Last Updated: 2/5/2021
+        The script is provided “AS IS” with no warranties or guarantees.
+        
+        Prerequisites:
+        Azure Automation Account: https://docs.microsoft.com/azure/automation/automation-intro
+        Azure Run As Account: https://docs.microsoft.com/azure/automation/create-run-as-account
+        Azure SQL Managed Instance: https://docs.microsoft.com/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview
+        Read about SQL Managed Instance management operations: https://docs.microsoft.com/azure/azure-sql/managed-instance/management-operations-overview
+        
+    .PARAMETER AzureRunAsConnection 
+        Name of the "Run as account". If not specified, default value will be used.
+  
+        For details on automation connections visit:
+        https://docs.microsoft.com/azure/automation/automation-connection
+        
+    .PARAMETER Simulate
+    Boolean used as flag for simulation of scaling. If set to True, scaling will not be performed and instead only output will be written.
+    
+    .OUTPUTS 
+       Script duration and log messages.
+
+#>
+
 param(
     [parameter(Mandatory=$false)]
     [String] $AzureRunAsConnection = "Use *AzureRunAsConnection* Asset",
@@ -5,7 +40,7 @@ param(
     [bool]$Simulate = $false
 )
 
-$VERSION = "0.0.1"
+$VERSION = "1.0"
 
 # Define function to check current time against specified range
 function CheckScheduleEntry ([string]$TimeRange)
