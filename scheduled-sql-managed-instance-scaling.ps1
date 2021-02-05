@@ -19,6 +19,11 @@
         Azure SQL Managed Instance: https://docs.microsoft.com/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview
         Read about SQL Managed Instance management operations: https://docs.microsoft.com/azure/azure-sql/managed-instance/management-operations-overview
         
+        Requred modules:
+        Az.Accounts
+        Az.Resources
+        Az.Sql
+        
     .PARAMETER AzureRunAsConnection 
         Name of the "Run as account". If not specified, default value will be used.
   
