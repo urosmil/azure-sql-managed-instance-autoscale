@@ -1,1 +1,14 @@
 
+{
+    "Author": "Azure SQL Team",
+    "Id": "azure-sql-managed-instance-autoscale",
+    "IsFederated": true,
+    "IsWorkflow": false,
+    "ReleaseDate": "2021-1-5T00:00:00",
+    "RunbookKind": 5,
+    "RunbookKindString": "PowerShell",
+    "Summary": "This runbook is performing Azure SQL Managed Instance scaling based on the configuration set through tags on resource group or Azure SQL Managed Instance.",
+    "Title": "Azure SQL Managed Instance - Scheduled scaling",
+    "UpdatedDate": "2021-1-5T00:00:00",
+    "UserTags": "Azure SQL, SQL Managed Instance, AutoScaling, Powershell, Dev / Test Environments"
+}
