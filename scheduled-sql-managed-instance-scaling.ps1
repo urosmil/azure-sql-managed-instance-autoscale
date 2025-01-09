@@ -8,14 +8,13 @@
         In order to reduce the costs, customers perform scaling to the lower compute (which is the main price driver in Azure SQL Managed Instance) during quiet hours and then increasing compute power during busy hours.
         
         Script Version: 1.0
-        Author: Uros Milanovic (urmilano)
+        Author: Uros Milanovic (urosmil)
         WWW: 
-        Last Updated: 2/5/2021
+        Last Updated: 1/9/2025
         The script is provided “AS IS” with no warranties or guarantees.
         
         Prerequisites:
         Azure Automation Account: https://docs.microsoft.com/azure/automation/automation-intro
-        Azure Run As Account: https://docs.microsoft.com/azure/automation/create-run-as-account
         Azure SQL Managed Instance: https://docs.microsoft.com/azure/azure-sql/managed-instance/sql-managed-instance-paas-overview
         Read about SQL Managed Instance management operations: https://docs.microsoft.com/azure/azure-sql/managed-instance/management-operations-overview
         
@@ -23,12 +22,6 @@
         Az.Accounts
         Az.Resources
         Az.Sql
-        
-    .PARAMETER AzureRunAsConnection 
-        Name of the "Run as account". If not specified, default value will be used.
-  
-        For details on automation connections visit:
-        https://docs.microsoft.com/azure/automation/automation-connection
         
     .PARAMETER Simulate
     Boolean used as flag for simulation of scaling. If set to True, scaling will not be performed and instead only output will be written.
@@ -40,12 +33,42 @@
 
 param(
     [parameter(Mandatory=$false)]
-    [String] $AzureRunAsConnection = "Use *AzureRunAsConnection* Asset",
-    [parameter(Mandatory=$false)]
     [bool]$Simulate = $false
 )
 
 $VERSION = "1.0"
+
+function ConnectWithManagedIdentity {
+    Write-Verbose "ConnectWithManagedIdentity function has been initiated."
+    # Define the managed identity client ID as a fixed variable
+    $identityClientId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Replace with the actual client ID (system assigned or user assigned managed identity)
+
+    try {
+        Connect-AzAccount -Identity -AccountId $identityClientId
+        Write-Verbose "Successfully connected to Azure using managed identity."
+    } catch {
+        Write-Verbose "Failed to connect to Azure: $_"
+        exit 1
+    }
+
+    # Get the current Azure context
+    $context = Get-AzContext
+
+    # Check if the context is retrieved correctly
+    if ($null -eq $context) {
+        Write-Verbose "Failed to retrieve Azure context."
+        exit 1
+    } else {
+        # Retrieve the subscription ID and name
+        $subscriptionId = $context.Subscription.Id
+        $subscriptionName = $context.Subscription.Name
+
+        # Output the current context
+        Write-Verbose "Current context: Subscription ID [$subscriptionId], Subscription Name [$subscriptionName]"
+    }
+
+    return $context
+}
 
 # Define function to check current time against specified range
 function CheckScheduleEntry ([string]$TimeRange)
@@ -60,7 +83,7 @@ function CheckScheduleEntry ([string]$TimeRange)
         # Parse as range if contains '->'
         if($TimeRange -like "*->*")
         {
-            $timeRangeComponents = $TimeRange -split "->" | foreach {$_.Trim()}
+            $timeRangeComponents = $TimeRange -split "->" | ForEach-Object { $_.Trim() }
             if($timeRangeComponents.Count -eq 2)
             {
                 $rangeStart = Get-Date $timeRangeComponents[0]
@@ -107,7 +130,7 @@ function CheckScheduleEntry ([string]$TimeRange)
                 $parsedDay = Get-Date $TimeRange
             }
         
-            if($parsedDay -ne $null)
+            if ($null -ne $parsedDay)
             {
                 $rangeStart = $parsedDay # Defaults to midnight
                 $rangeEnd = $parsedDay.AddHours(23).AddMinutes(59).AddSeconds(59) # End of the same day
@@ -177,53 +200,38 @@ try
     Write-Output "Current UTC/GMT time [$($currentTime.ToString("dddd, yyyy MMM dd HH:mm:ss"))] will be checked against schedules"
     
 
-    # Retrieve connection from variable asset if not specified
-    if($AzureRunAsConnection -eq "Use *AzureRunAsConnection* asset")
-    {
-        # By default, look for "AzureRunAsConnection" asset
-        $connection = Get-AutomationConnection -Name AzureRunAsConnection
-        if($connection -eq $null)
-        {
-            throw "No AzureRunAsConnection service principal is defined."
-        }
+    # Connect to Azure using the managed identity
+    $context = ConnectWithManagedIdentity
+    if ($context) {
+        Write-Output "Successfully connected to account."
     }
-    else
-    {
-        # A different connection was specified, attempt to load it
-        $connection = Get-AutomationConnection -Name $AzureRunAsConnection
-        if($connection -eq $null)
-        {
-            throw "Failed to get connection with name [$AzureRunAsConnection]"
-        }
+    else {
+        Write-Output "Failed to retrieve GUID for the account."
     }
 
-    Write-Output "Attempting to authenticate wuth subscription ID: [$($connection.SubscriptionID)]"
+    # Check if the context is retrieved correctly
+    if ($null -eq $context) {
+        Write-Output "Failed to retrieve Azure context."
+    } else {
+        # Retrieve the subscription ID and name
+        $subscriptionId = $context.Subscription.Id
+        $subscriptionName = $context.Subscription.Name
 
-    # Ensures you do not inherit an AzContext in your runbook
-    Disable-AzContextAutosave –Scope Process
-    while(!($connectionResult) -and ($logonAttempt -le 5))
-    {
-        $LogonAttempt++
-        # Logging in to Azure...
-        $connectionResult = Connect-AzAccount `
-                                -ServicePrincipal `
-                                -Tenant $connection.TenantID `
-                                -ApplicationId $connection.ApplicationID `
-                                -CertificateThumbprint $connection.CertificateThumbprint
-
-        Start-Sleep -Seconds 30
+        # Output the current context
+        Write-Output "Current context: Subscription ID [$subscriptionId], Subscription Name [$subscriptionName]"
     }
 
-    $AzureContext = Set-AzContext -SubscriptionId $connection.SubscriptionID
-    
-    Write-Output "Current context: [$($AzureContext.Name)]"
+    try {
+        $resourceGroups = Get-AzResourceGroup
+        Write-Output "Total resource groups found: [$($resourceGroups.length)]"
 
-    $resourceGroups = Get-AzResourceGroup -AzContext $AzureContext
-    Write-Output "Total resource groups found: [$($resourceGroups.length)]"
-
-    # Get resource groups that are tagged for automatic shutdown of resources
-    $taggedResourceGroups = Get-AzResourceGroup -AzContext $AzureContext -Tag @{ AutoScalingSchedule = $null }
-    Write-Output "Found [$($taggedResourceGroups.length)] schedule-tagged resource groups in subscription"    
+        # Get resource groups that are tagged for automatic shutdown of resources
+        $taggedResourceGroups = Get-AzResourceGroup -Tag @{ AutoScalingSchedule = $null }
+        Write-Output "Found [$($taggedResourceGroups.length)] schedule-tagged resource groups in subscription"
+    } catch {
+        Write-Output "Failed to retrieve resource groups: $_"
+        throw
+    }
 
     if($taggedResourceGroups.length -gt 0) {
         $schedule = $null
@@ -247,7 +255,7 @@ try
             Write-Output "Managed instances found: [$($managedInstances.length)]"
 
             foreach($mi in $managedInstances) {
-                if( $mi.DnsZone -ne $null ) {
+                if( $null -ne $mi.DnsZone ) {
                     Write-Output "Working with managed instance: [$($mi.ManagedInstanceName)] -> from resource group [$($rgName)]"
                      
                      # Check for direct tag or group-inherited tag
@@ -275,7 +283,7 @@ try
                     }
 
                     # Parse the ranges in the Tag value. Expects a string of comma-separated time ranges, or a single time range
-                    $timeRangeList = @($schedule -split "," | foreach {$_.Trim()})
+                    $timeRangeList = @($schedule -split "," | ForEach-Object {$_.Trim()})
 
                     # Check each range against the current time to see if any schedule is matched
                     $scheduleMatched = $false

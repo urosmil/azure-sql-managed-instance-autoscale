@@ -19,6 +19,9 @@ Frequent scenario for the customers running Azure SQL Managed Instance is scenar
 
 <b>It is recommended to use the script only for General Purpose instances as this service tier supports online storage scaling.</b> For more details visit [Overview of Azure SQL Managed Instance management operations](https://docs.microsoft.com/azure/azure-sql/managed-instance/management-operations-overview)
 
+## Authentication method
+This example uses a managed identity ID within the script for authentication. You can also use other authentication methods based on your environment and company policies. Adjust the script accordingly to fit your specific scenario.
+
 ## How to configure
 
 There are 5 tags that need to be populated in order for runbook to identify scaling instances:
